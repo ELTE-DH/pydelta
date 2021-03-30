@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='delta',
-    version='2.0.0.dev1',
+    version='2.0.1',
     description='Stylometry toolkit',
     author=", ".join(['Thorsten Vitt <thorsten.vitt@uni-wuerzburg.de>',
             'Fotis Jannidis <fotis.jannidis@uni-wuerzburg.de>']),
@@ -24,6 +24,7 @@ setup(
         'pandas>=0.13.1',          # https://github.com/cophi-wue/pydelta/issues/6
 #        'profig>=0.2.8',
         'scikit-learn>=0.16.0',
+        'scikit-learn-extra>=0.1',  # KMedoids clustering
         'regex'
     ],
     test_suite = 'nose.collector'

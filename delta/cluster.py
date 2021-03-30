@@ -6,8 +6,7 @@ Clustering of distance matrixes.
 using :meth:`Clustering.fcluster`, the flattened clustering is then represented
 by :class:`FlatClustering`.
 
-If supported by the installed version of scikit-learn, there is also a
-KMedoidsClustering.
+There is also a KMedoidsClustering via scikit-learn-extra.
 """
 
 import logging
@@ -22,6 +21,7 @@ from delta.util import Metadata
 from delta.deltas import DistanceMatrix
 from delta.corpus import Corpus
 from sklearn import metrics
+from sklearn_extra.cluster import KMedoids
 
 
 class Clustering:
@@ -231,9 +231,6 @@ class FlatClustering:
         result += pformat(clusters, compact=True) + '\n'
         return result
 
-try:
-    from sklearn.cluster import KMedoids
-
     class KMedoidsClustering_distances(FlatClustering):
 
         def __init__(self, distances, n_clusters=None, metadata=None,
@@ -252,11 +249,6 @@ try:
             if n_clusters is None:
                 n_clusters = self.group_count
             model = KMedoids(n_clusters=n_clusters,
-                             distance_metric=delta.metric, **extra_args)
+                             metric=delta.metric, **extra_args)
             data = delta.prepare(corpus)
             self.set_clusters(model.fit_predict(data))
-
-
-except ImportError:
-    logger.log(logging.WARNING, "KMedoids clustering not available.\n" \
-               "You need a patched scikit-learn, see README.txt", exc_info=0)
