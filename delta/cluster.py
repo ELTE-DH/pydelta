@@ -231,24 +231,26 @@ class FlatClustering:
         result += pformat(clusters, compact=True) + '\n'
         return result
 
-    class KMedoidsClustering_distances(FlatClustering):
 
-        def __init__(self, distances, n_clusters=None, metadata=None,
-                     **kwargs):
-            super().__init__(distances, metadata, **kwargs)
-            if n_clusters is None:
-                n_clusters = self.group_count
-            model = KMedoids(n_clusters=n_clusters)
-            self.set_clusters(model.fit_predict(distances))
+class KMedoidsClustering_distances(FlatClustering):
 
-    class KMedoidsClustering(FlatClustering):
+    def __init__(self, distances, n_clusters=None, metadata=None,
+                 **kwargs):
+        super().__init__(distances, metadata, **kwargs)
+        if n_clusters is None:
+            n_clusters = self.group_count
+        model = KMedoids(n_clusters=n_clusters)
+        self.set_clusters(model.fit_predict(distances))
 
-        def __init__(self, corpus, delta, n_clusters=None, extra_args={},
-                     metadata=None, **kwargs):
-            super().__init__(corpus, metadata, **kwargs)
-            if n_clusters is None:
-                n_clusters = self.group_count
-            model = KMedoids(n_clusters=n_clusters,
-                             metric=delta.metric, **extra_args)
-            data = delta.prepare(corpus)
-            self.set_clusters(model.fit_predict(data))
+
+class KMedoidsClustering(FlatClustering):
+
+    def __init__(self, corpus, delta, n_clusters=None, extra_args={},
+                 metadata=None, **kwargs):
+        super().__init__(corpus, metadata, **kwargs)
+        if n_clusters is None:
+            n_clusters = self.group_count
+        model = KMedoids(n_clusters=n_clusters,
+                         metric=delta.metric, **extra_args)
+        data = delta.prepare(corpus)
+        self.set_clusters(model.fit_predict(data))
