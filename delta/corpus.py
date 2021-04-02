@@ -19,7 +19,7 @@ import os
 import regex as re
 import pandas as pd
 
-from delta.tokenizer import TokenType, tokenizer
+from delta.tokenization import TokenType, tokenizer
 from delta.util import Metadata, DefaultDocumentDescriber, ngrams
 
 
