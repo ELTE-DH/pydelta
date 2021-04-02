@@ -7,23 +7,25 @@ implementations for reading and tokenizing files and creating a feature vector
 out of that.
 """
 
-import os
-import glob
+from collections import Counter
+import csv
 from fnmatch import fnmatch
-from typing import Type
+import glob
+from itertools import islice
+import logging
+from math import ceil
+import os
 
 import regex as re
 import pandas as pd
-import collections
-import csv
-from math import ceil
-from delta.util import Metadata, DocumentDescriber, DefaultDocumentDescriber, ngrams
 
-import logging
+from delta.tokenizer import TokenType, tokenizer
+from delta.util import Metadata, DefaultDocumentDescriber, ngrams
 
 
 LETTERS_PATTERN = re.compile(r'\p{L}+')
 WORD_PATTERN = re.compile(r"\b(\p{L}[\p{L}'’]*?|[\p{L}'’]*?\p{L})\b", re.WORD)
+
 
 class FeatureGenerator(object):
 
@@ -58,7 +60,7 @@ class FeatureGenerator(object):
     """
 
     def __init__(self, lower_case=False, encoding="utf-8", glob='*.txt',
-                 skip=None,
+                 skip=None, token_type=TokenType.WORD,
                  token_pattern=LETTERS_PATTERN,
                  max_tokens=None,
                  ngrams=None):
@@ -71,6 +73,7 @@ class FeatureGenerator(object):
             encoding (str): the encoding to use when reading files
             glob (str): the pattern inside the subdirectory to find files.
             skip (str): don't handle files that match this pattern
+            token_type (TokenType): the token type: word or character
             token_pattern (re.Regex): The regular expression used to identify
                 tokens. The default, LETTERS_PATTERN, will simply find sequences
                 of unicode letters. WORD_PATTERN will find the shortest sequence
@@ -84,7 +87,7 @@ class FeatureGenerator(object):
         self.encoding = encoding
         self.glob = glob
         self.skip = skip
-        self.token_pattern = token_pattern
+        self.tokenizer = tokenizer(token_type, token_pattern)
         self.max_tokens = max_tokens
         self.ngrams = ngrams
         self.logger = logging.getLogger(__name__)
@@ -94,30 +97,6 @@ class FeatureGenerator(object):
             ', '.join(key+'='+repr(value)
                       for key, value in self.__dict__.items() if key != 'logger') + \
             ')'
-
-    def tokenize(self, lines):
-        """
-        Tokenizes the given lines.
-
-        This method is called by :meth:`count_tokens`. The default
-        implementation will return an iterable of all tokens in the given
-        :param:`lines` that matches the :attr:`token_pattern`. The result
-        of this method can further be postprocessed by
-        :meth:`postprocess_tokens`.
-
-        Args:
-            lines: Iterable of strings in which to look for tokens.
-
-        Returns:
-            Iterable (default implementation generator) of tokens
-        """
-        count = 0
-        for line in lines:
-            for match in self.token_pattern.finditer(line):
-                count += 1
-                yield match.group(0)
-                if self.max_tokens is not None and count >= self.max_tokens:
-                    return
 
     def postprocess_tokens(self, tokens):
         """
@@ -141,7 +120,6 @@ class FeatureGenerator(object):
 
         return tokens
 
-
     def count_tokens(self, lines):
         """
         This calls :meth:`tokenize` to split the iterable `lines` into tokens.
@@ -156,11 +134,9 @@ class FeatureGenerator(object):
         Returns:
             pandas.Series: maps tokens to the number of occurrences.
         """
-        tokens = self.postprocess_tokens(self.tokenize(lines))
-        count = collections.defaultdict(int)
-        for token in tokens:
-            count[token] += 1
-        return pd.Series(count)
+        tokens = self.postprocess_tokens(
+            self.tokenizer(islice(lines, self.max_tokens)))
+        return pd.Series(Counter(tokens))
 
     def get_name(self, filename):
         """
@@ -328,7 +304,6 @@ class Corpus(pd.DataFrame):
         self.document_describer = document_describer
         self.feature_generator = feature_generator
 
-
     def new_data(self, data, **metadata):
         """
         Wraps the given `DataFrame` with metadata from this corpus object.
@@ -341,8 +316,6 @@ class Corpus(pd.DataFrame):
                       feature_generator=self.feature_generator,
                       document_describer=self.document_describer,
                       metadata=Metadata(self.metadata, **metadata))
-
-
 
     def save(self, filename="corpus_words.csv"):
         """
@@ -404,7 +377,6 @@ class Corpus(pd.DataFrame):
             return self.relative_frequencies().top_n(mfwords)
         else:
             return self.relative_frequencies()
-
 
     def top_n(self, mfwords):
         """
@@ -489,7 +461,6 @@ class Corpus(pd.DataFrame):
                              complete=False,
                              **metadata)
 
-
     def relative_frequencies(self):
         if self.metadata.frequencies:
             return self
@@ -500,18 +471,18 @@ class Corpus(pd.DataFrame):
             return Corpus(
                 corpus=new_corpus,
                 document_describer=self.document_describer,
-                metadata = self.metadata,
+                metadata=self.metadata,
                 complete=False,
                 frequencies=True)
 
     def z_scores(self):
         df = (self - self.mean()) / self.std()
         return Corpus(corpus=df,
-                        document_describer=self.document_describer,
-                        metadata=self.metadata,
-                        z_scores=True,
-                        complete=False,
-                        frequencies=True)
+                      document_describer=self.document_describer,
+                      metadata=self.metadata,
+                      z_scores=True,
+                      complete=False,
+                      frequencies=True)
 
     def cull(self, ratio=None, threshold=None, keepna=False):
         """
