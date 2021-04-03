@@ -20,13 +20,14 @@ from delta.cluster import Clustering, FlatClustering
 
 from delta.features import get_rfe_features
 from delta.graphics import Dendrogram
+from delta.tokenization import TokenType
 
 __all__ = [ Corpus, FeatureGenerator, LETTERS_PATTERN, WORD_PATTERN,
            functions, Normalization, normalization,
            DeltaFunction, PDistDeltaFunction,
            MetricDeltaFunction, CompositeDeltaFunction,
            Clustering, FlatClustering,
-           get_rfe_features, Dendrogram ]
+           get_rfe_features, Dendrogram, TokenType ]
 
 try:
         from delta.cluster import KMedoidsClustering

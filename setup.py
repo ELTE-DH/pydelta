@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='delta',
-    version='2.0.1',
+    version='2.0.2',
     description='Stylometry toolkit',
     author=", ".join(['Thorsten Vitt <thorsten.vitt@uni-wuerzburg.de>',
             'Fotis Jannidis <fotis.jannidis@uni-wuerzburg.de>']),
